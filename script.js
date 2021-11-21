@@ -14,6 +14,33 @@ let stickyNote = document.querySelector(".sticky");
 let image = document.querySelector(".image");
 let imagebox = document.querySelector(".imgabox");
 let pencolr=document.querySelector(".pencil-color");
+let pencilColor;
+let eraserColor="#ffffff";
+let allPencilColor= document.querySelectorAll(".pencil-color");
+let pencilRange=document.querySelector("#pencilRange");
+let eraserRange=document.querySelector("#eraserRange");
+let canvasWidth;
+let download= document.querySelector(".download");
+let undoButton = document.querySelector(".undo");
+let redoButton = document.querySelector(".redo");
+
+let undoredoArray =[];
+let track =0;
+
+pencilRange.addEventListener("change",(e)=>{
+  canvasWidth= pencilRange.value;
+})
+eraserRange.addEventListener("change",(e)=>{
+  canvasWidth= eraserRange.value;
+})
+
+for (let i = 0; i < allPencilColor.length; i++) {
+  const element = allPencilColor[i];
+  element.addEventListener("click",()=>{
+    pencilColor=element.classList[1];
+  })
+  
+}
 
 hamburger.addEventListener("click", (e) => {
   if (hamburger.children[0].classList.contains("bi-list")) {
@@ -31,6 +58,7 @@ pencil.addEventListener("click", (e) => {
   pencilShow = !pencilShow;
   if (pencilShow) {
     pencilbox.style.display = "block";
+    // canvasWidth=pencilRange.value;
   } else {
     pencilbox.style.display = "none";
   }
@@ -39,6 +67,8 @@ eraser.addEventListener("click", (e) => {
   eraserShow = !eraserShow;
   if (eraserShow) {
     eraserbox.style.display = "block";
+    pencilColor=eraserColor;
+    // canvasWidth=eraserRange.value;
   } else {
     eraserbox.style.display = "none";
   }
@@ -84,24 +114,24 @@ stickyNote.onmousedown = function (event) {
     stickyNote.onmouseup = null;
   };
 };
-imagebox.onmousedown = function (event) {
-  imagebox.style.position = "absolute";
-  imagebox.style.zIndex = 1000;
-  document.body.append(imagebox);
-  function moveAt(pageX, pageY) {
-    imagebox.style.left = pageX - imagebox.offsetWidth / 2 + "px";
-    imagebox.style.top = pageY - imagebox.offsetHeight / 2 + "px";
-  }
-  moveAt(event.pageX, event.pageY);
-  function onMouseMove(event) {
-    moveAt(event.pageX, event.pageY);
-  }
-  document.addEventListener("mousemove", onMouseMove);
-  imagebox.onmouseup = function () {
-    document.removeEventListener("mousemove", onMouseMove);
-    imagebox.onmouseup = null;
-  };
-};
+// imagebox.onmousedown = function (event) {
+//   imagebox.style.position = "absolute";
+//   imagebox.style.zIndex = 1000;
+//   document.body.append(imagebox);
+//   function moveAt(pageX, pageY) {
+//     imagebox.style.left = pageX - imagebox.offsetWidth / 2 + "px";
+//     imagebox.style.top = pageY - imagebox.offsetHeight / 2 + "px";
+//   }
+//   moveAt(event.pageX, event.pageY);
+//   function onMouseMove(event) {
+//     moveAt(event.pageX, event.pageY);
+//   }
+//   document.addEventListener("mousemove", onMouseMove);
+//   imagebox.onmouseup = function () {
+//     document.removeEventListener("mousemove", onMouseMove);
+//     imagebox.onmouseup = null;
+//   };
+// };
 
 image.addEventListener("click", (e) => {
   let input = document.createElement("input");
@@ -116,6 +146,11 @@ image.addEventListener("click", (e) => {
     imagebox.appendChild(img);
     imagebox.style.display = "block";
   });
+});
+imagebox.addEventListener("dblclick", (e) => {
+  
+    imagebox.style.display = "none";
+ 
 });
 
 /// create canvas element and append it to document body
@@ -137,11 +172,63 @@ window.addEventListener("resize", resize);
 document.addEventListener("mousemove", draw);
 document.addEventListener("mousedown", setPosition);
 document.addEventListener("mouseenter", setPosition);
+document.addEventListener("mouseup", setPosition);
 
 // new position from mouse event
 function setPosition(e) {
   pos.x = e.clientX;
   pos.y = e.clientY;
+  if (e.type=="mouseup") {
+    let url = canvas.toDataURL();
+    undoredoArray.push(url);
+    track=undoredoArray.length - 1;
+  }
+  
+}
+  
+
+undoButton.addEventListener("click",()=>{
+  
+  
+  undoredoArray.pop();
+  track--;
+  
+  
+  if (track>0) {
+    track--;
+  }
+  let trackObj={
+    trackValue: track,
+    undoredoArray
+  }
+  undoredoFunc(trackObj);
+})
+redoButton.addEventListener("click",()=>{
+  undoredoArray.pop();
+  track--;
+  if (track<undoredoArray.length-1) {
+    track++;
+  }
+  let trackObj={
+    trackValue: track,
+    undoredoArray
+  }
+  undoredoFunc(trackObj);
+})
+
+function undoredoFunc(trackObj){
+  track= trackObj.trackValue;
+  undoredoArray=trackObj.undoredoArray;
+  // console.log(trackObj);
+  
+  let url=undoredoArray[track];
+  let img = new Image();
+  img.src= url;
+  
+  
+  img.onload = (e) => {
+    ctx.drawImage(img, 0 , 0 , canvas.width , canvas.height );
+  }
 }
 
 // resize canvas
@@ -156,10 +243,10 @@ function draw(e) {
 
   ctx.beginPath(); // begin
 
-  ctx.lineWidth = 1;
+  ctx.lineWidth = canvasWidth;
   ctx.lineCap = "round";
   
-  ctx.strokeStyle = `red`;
+  ctx.strokeStyle = pencilColor;
 
   ctx.moveTo(pos.x, pos.y); // from
   setPosition(e);
@@ -167,3 +254,12 @@ function draw(e) {
 
   ctx.stroke(); // draw it!
 }
+
+download.addEventListener("click",(e)=>{
+  let a = document.createElement("a");
+  let url = canvas.toDataURL();
+  a.href=url;
+  a.download="image.jpg";
+  a.click();
+
+})
